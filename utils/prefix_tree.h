@@ -4,6 +4,9 @@
 #include<vector>
 #include<ranges>
 #include<iostream>
+#include<iterator>
+#include<stack>
+#include<string>
 
 namespace utils
 {
@@ -11,15 +14,14 @@ namespace utils
 class prefix_tree
 {
     constexpr static int R = 'z' - 'a' + 1;
-    struct Node
-    {
+    struct Node {
         bool is_end;
         std::array<Node*, R> next;
 
         Node(bool val = false) : is_end{val}, next{} { }
     };
 
-    Node root{};
+    Node   root{};
     size_t N{};
 
     int index(char c) { return std::tolower(c) - 'a'; }
@@ -78,6 +80,10 @@ class prefix_tree
         return;
     }
 
+    /*
+     * visits all nades.
+     * implemented with depth first search
+     */
     template<typename Func>
     void visit(Node *root, Func&& f)
     {
@@ -105,11 +111,65 @@ public:
         return contains(&root, key, 0);
     }
 
-    std::vector<std::string> keys()
-    {
-        std::vector<std::string> res{};
-        return res;
-    }
+    class const_iterator : public std::iterator<
+                            std::forward_iterator_tag,   // iterator_category
+                            std::string,                 // value_type
+                            long,                        // difference_type
+                            const std::string*,          // pointer
+                            std::string> {               // reference
+        const Node *root;
+        struct NodeDescriptor {
+            const Node *node;
+            char symbol;
+            int level;
+        };
+        std::stack<NodeDescriptor> st{};
+        std::string key{};
+
+        void dfs() {
+            while(!st.empty()) {
+                auto descr = st.top();
+                st.pop();
+
+                for(auto idx : std::views::iota(0, R) | std::views::reverse) {
+                    auto w = descr.node->next[idx];
+                    if (w)
+                        st.push({w, static_cast<char>('a' + idx), descr.level + 1});
+                }
+
+                key.resize(descr.level);
+                key.push_back(descr.symbol);
+                if (descr.node->is_end)
+                    return;
+            }
+            key = "";
+        }
+    public:
+        explicit const_iterator(const Node *node, bool end = false) : root(node) {
+            if (end)
+                return;
+
+            for(auto idx : std::views::iota(0, R) | std::views::reverse) {
+                auto w = root->next[idx];
+                if (w)
+                    st.push({w, static_cast<char>('a' + idx), 0});
+            }
+            dfs();
+        }
+
+        const_iterator& operator++() { dfs(); return *this; }
+        bool            operator==(const_iterator other) const { return root == other.root && key == other.key; }
+        bool            operator!=(const_iterator other) const { return !(*this == other); }
+        reference       operator*() const { return key; }
+        pointer         operator->() const { return &key; }
+    };
+
+    const_iterator cbegin() const { return const_iterator{&root}; }
+    const_iterator cend() const  { return const_iterator{&root, true}; }
+
+    auto begin() const { return cbegin(); }  // work around for
+    auto end() const  { return cend(); }     // range-based loops
+
 
     size_t size() { return N; }
 

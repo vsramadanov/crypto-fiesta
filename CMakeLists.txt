@@ -7,7 +7,7 @@ PROJECT("matcher")
 
 SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_CXX_STANDARD_REQUIRED True)
-SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -Wpedantic -Werror -fsanitize=address")
+SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -Wpedantic -Werror -fsanitize=address -ggdb")
 
 SET(INCLUDE_DIRS "utils")
 
